@@ -126,8 +126,10 @@ void delay(PlLong time_delay) {
 //     drawing_thread = SDL_CreateThread(drawing_function, NULL);
 // }
 
-void set_board_hex(char *content, PlLong label, PlLong x, PlLong y) {
-    board.hexes[board_counter].hex = string_to_hex(content, label);
+void set_board_hex(
+    char *content, PlLong label, PlLong id, PlLong seen, PlLong x, PlLong y
+) {     
+    board.hexes[board_counter].hex = string_to_hex(content, label, id, seen);
     board.hexes[board_counter].x = x;
     board.hexes[board_counter].y = y;
     board_counter++;

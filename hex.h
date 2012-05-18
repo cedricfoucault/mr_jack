@@ -9,6 +9,8 @@ enum Content_ {
     OBSTACLE,
     EGOUT,
     LAMPE,
+    SORTIE,
+    BARRAGE,
     MAIGRET,
     POIROT,
     LUMIERE,
@@ -24,6 +26,8 @@ typedef enum Content_ Content;
 struct Hex_ {
     Content content;
     int label;
+    int id;
+    int seen;
 };
 
 typedef struct Hex_ Hex;
@@ -31,7 +35,7 @@ typedef struct Hex_ Hex;
 // extern short a, b, c;
 
 void draw_hex(SDL_Surface *screen, Hex c, int i, int j, TTF_Font *font);
-Hex string_to_hex(char *content, int label);
+Hex string_to_hex(char *content, int label, int id, int seen);
 Hex lampe(int label);
 Hex egout(int label);
 
