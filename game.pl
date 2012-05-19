@@ -19,7 +19,18 @@ new_game :-
     init,
     randomize,
     choose_jack,
-    catch(play_turn(1), 'fin', fin)/* ; fin*/.
+    write('------------------- DEBUT DU JEU ------------------\n'),
+    write('Jack, '),
+    wait_alone,
+    write('Écoutez bien\n'), flush_output,
+    sleep(1),
+    write('Vous incarnez'), supsens(1),
+    is_jack(Jack),
+    format('~a !!!\n', [Jack]), flush_output,
+    sleep(1),
+    wait_confirm,
+    clear_console,
+    catch(play_turn(1), 'fin', fin) ; fin.
     
 choose_jack :-
     random(1, 9, N),
@@ -31,10 +42,13 @@ choose_jack :-
 play_turn(N) :-
     /* odd-numbered turn */
     (N mod 2) =:= 1,
+    update_seen_tags,
     update_board,
     format('-------------------- TOUR ~d --------------------\n', [N]),
-    declare_innocent,
+    sleep(1),
+    declare_innocent, flush_output,
     choose_characters(ChosenOnes, Others),
+    sleep(1),
     format('Personnages jouables : ~a, ~a, ~a, ~a\n', ChosenOnes),
     write('— INSPECTEUR : Quel personnage voulez-vous jouer ? '),
     choose(ChosenOnes, C1Chosen, Rest1),
@@ -57,9 +71,12 @@ play_turn(N) :-
 play_turn(N, Characters) :-
     /* even-numbered turn */
     (N mod 2) =:= 0,
+    update_seen_tags,
     update_board,
     format('-------------------- TOUR ~d --------------------\n', [N]),
-    declare_innocent,
+    sleep(1),
+    declare_innocent, flush_output,
+    sleep(1),
     format('Personnages jouables : ~a, ~a, ~a, ~a\n', Characters),
     write('— JACK : Quel personnage voulez-vous jouer ? '),
     choose(Characters, C1Chosen, Rest1),
@@ -79,24 +96,61 @@ play_turn(N, Characters) :-
     (   N < 8 ->
         Next is N + 1,
         play_turn(Next)
-    ;   quit
+    ;   write('8 tours sont écoulés… '), flush_output,
+        sleep(1),
+        write('Jack a gagné !!!\n'), flush_output,
+        sleep(2),
+        write('Bravo Jack !\n'), flush_output,
+        sleep(1),
+        fin
     ).
 
 fin :- 
     write('---------------------- FIN ----------------------\n'),
     quit.
     
+play(freud) :- !,
+    write('Voulez-vous utiliser la capacité spéciale de freud (oui/non) ? '),
+    (   read_ouinon ->
+        /* use special ability */
+        special_ability(freud)
+    ;   /* regular move */
+        write('De combien de cases souhaitez-vous vous déplacer (1 - 3) ? '),
+        read_integer(1, 3, N),
+        character(X, Y, freud),
+        ask_move(N, freud, X, Y)
+    ).
+play(discrete) :- !,
+    write('De combien de cases souhaitez-vous vous déplacer (1 - 4) ? '),
+    read_integer(1, 4, N),
+    character(X, Y, discrete),
+    ask_move(N, discrete, X, Y).    
+play(poirot) :- !, play_after(poirot).
+play(maigret) :- !, play_after(maigret).
 play(Character) :-
+    write('Voulez-vous utiliser la capacité spéciale '),
+    format('de ~a (oui/non) ? ', [Character]),
+    (   read_ouinon ->
+        /* use special ability before movement */
+        play_before(Character)
+    ;   /* use special ability after movement */
+        play_after(Character)
+    ).
+    
+/* play ability before movement */
+play_before(Character) :-
+    special_ability(Character),
     write('De combien de cases souhaitez-vous vous déplacer (1 - 3) ? '),
     read_integer(1, 3, N),
     character(X, Y, Character),
     ask_move(N, Character, X, Y).
-/*    catch(ask_move(N, Character, X, Y), 'recommencer', (
-        retractall(character(_, _, Character)),
-        asserta(character(X, Y, Character))
-        play(Character)
-        )
-    ).*/
+/* play ability after movement */
+play_after(Character) :-
+    write('De combien de cases souhaitez-vous vous déplacer (1 - 3) ? '),
+    read_integer(1, 3, N),
+    character(X, Y, Character),
+    ask_move(N, Character, X, Y),
+    special_ability(Character).
     
 declare_innocent :-
     write('Ont été innocentés :'),
@@ -104,19 +158,19 @@ declare_innocent :-
     write('.\n').
 
 ask_manhole(Character, N) :-
-    write('Par quelle bouche d\'égouts voulez vous sortir ? nº'),
+    write('Par quelle bouche d\'égout voulez vous sortir ? nº'),
     read_integer(1, 8, N_),
     (   case(_, _, egout(0, N_)) ->
         N is N_
-    ;   write('Ceci est une bouche d\'égouts fermée, '),
-        write('veuillez saisir une bouche d\'égouts ouverte.\n'),
+    ;   write('Ceci est une bouche d\'égout fermée, '),
+        write('veuillez saisir une bouche d\'égout ouverte.\n'),
         ask_manhole(Character, N)
     ).
 
 ask_move(1, Character, OldX, OldY) :-
     (   
         (   is_on_open_manhole(Character),
-            write('Voulez-vous passer les égouts (oui/non) ? '),
+            write('Voulez-vous passer les égout (oui/non) ? '),
             read_ouinon
         ) ->
         /* go through the sewers */
@@ -159,7 +213,7 @@ ask_move(N, Character, OldX, OldY) :-
     N > 1,
     (
         (   is_on_open_manhole(Character),
-            write('Voulez-vous passer les égouts (oui/non) ? '),
+            write('Voulez-vous passer les égout (oui/non) ? '),
             read_ouinon
         ) ->
         /* go through the sewers */
@@ -222,35 +276,55 @@ ask_move_cruchot(N, Character, OldX, OldY) :-
     ).
     
 special_ability(poirot) :-
-    write('Capacité spéciale :\n'),
+    write('Capacité spéciale : Alibi.\n'),
     draw_alibi(Character),
-    format('~a a un alibi : il est innocent !\n', [Character]).
+    wait_alone,
+    write('Écoutez bien'),
+    supsens(1),
+    format('\n~a a un alibi : il est innocent !\n', [Character]),
+    wait_confirm,
+    clear_console.
 
 special_ability(maigret) :-
+    write('Capacité spéciale : Lanterne.\n'),
     write('Choisissez la direction éclairée par la lanterne de maigret '),
     write('(e, ne, n, nw, sw, s, se) : '),
     read_direction(Direction),
     retract(lantern_direction(_)),
-    asserta(lantern_direction(Direction)).
+    asserta(lantern_direction(Direction)),
+    update_seen_tags,
+    update_board.
     
-special_ability(lumiere).
+special_ability(lumiere) :-
+    write('Capacité spéciale : Maître des lampadaires.\n'),
+    ask_lit_lamp(X1, Y1, Label, Id1),
+    ask_dead_lamp(X2, Y2, Id2),
+    /* swap */
+    retract(case(X1, Y1, lampe(Label, Id1))),
+    asserta(case(X2, Y2, lampe(Label, Id1))),
+    retract(case(X2, Y2, lampe(0, Id2))),
+    asserta(case(X1, Y1, lampe(0, Id2))),
+    update_seen_tags,
+    update_board.
+    
 
 special_ability(gerber) :-
-    write('Capacité spéciale : bouger un barrage de police.\n'),
-    write('Veuillez échanger une sortie avec un barrage de police :\n'),
-    write('sortie (1/2) ? '),
+    write('Capacité spéciale : Maître des barrages de police.\n'),
+    write('Choisissez une sortie à condamner (1/2) : '),
     read_integer(1, 2, NS),
-    write('barrage (1/2) ? '),
+    write('Choisissez un barrage à ouvrir (1/2) : '),
     read_integer(1, 2, NC),
     case(XS, YS, sortie(NS)),
     case(XC, YC, barrage(NC)),
+    /* swap */
     retract(case(XS, YS, sortie(NS))),
     asserta(case(XC, YC, sortie(NS))),
     retract(case(XC, YC, barrage(NC))),
-    asserta(case(XS, YS, barrage(NC))).    
+    asserta(case(XS, YS, barrage(NC))),
+    update_board.    
     
 special_ability(cruchot) :-
-    write('Capacité spéciale : sifflet !\n'),
+    write('Capacité spéciale : Sifflet !\n'),
     write('Choisissez un personnage à déplacer : '),
     read_character(Character1),
     write('De combien de cases souhaitez-vous le déplacer (1 - 3) ? '),
@@ -258,7 +332,8 @@ special_ability(cruchot) :-
     character(OldX1, OldY1, Character1),
     ask_move_cruchot(N1, Character1, OldX1, OldY1),
     Nleft is 3 - N1,
-    (   Nleft =:= 1
+    (   Nleft =:= 0 ->
+        true
     ;   write('Choisissez un personnage à déplacer : '),
         read_character(Character2),
         format('De combien de cases souhaitez-vous le déplacer (1 - ~d) ? ',
@@ -266,8 +341,9 @@ special_ability(cruchot) :-
         read_integer(1, Nleft, N2),
         character(OldX2, OldY2, Character2),
         ask_move_cruchot(N2, Character2, OldX2, OldY2),
-        Nleft2 is 3 - N2,
-        (   Nleft2 =:= Nleft - N2
+        Nleft2 is Nleft - N2,
+        (   Nleft2 =:= 0 ->
+            true
         ;   write('Choisissez un personnage à déplacer : '),
             read_character(Character3),
             character(OldX3, OldY3, Character3),
@@ -276,18 +352,99 @@ special_ability(cruchot) :-
     ).
     
 special_ability(freud) :-
-    write('Voulez-vous utiliser la capacité spéciale de freud : '),
-    write('échange de position (oui/non) ? '),
+    write('Capacité spéciale : Télékinésie.\n'),
     character(X1, Y1, freud),
+    write('Avec qui voulez-vous que freud échange de position ? '),
+    read_character(Character),
+    character(X2, Y2, Character),
+    write('Un canal télépathique se met en place'),
+    supsens(1),
+    format('\n ~a et freud s\'échangent !\n', [Character]),
+    flush_output,
+    /* swap */
+    retract(character(X1, Y1, freud)),
+    asserta(character(X2, Y2, freud)),
+    retract(character(X2, Y2, Character)),
+    asserta(character(X1, Y1, Character)),
+    update_seen_tags,
+    update_board,
+    sleep(1).
+    
+special_ability(legoutier) :-
+    write('Capacité spéciale : Maître des égout\n'),
+    ask_open_manhole(XO, YO, NO),
+    ask_closed_manhole(XC, YC, NC),
+    /* swap positions */
+    retract(case(XO, YO, egout(0, NO))),
+    asserta(case(XC, YC, egout(0, NO))),
+    retract(case(XC, YC, egout(1, NC))),
+    asserta(case(XO, YO, egout(1, NC))),
+    update_board.
+
+wait_alone :-
+    write('Êtes-vous seul (oui/non) ? '),
     (   read_ouinon ->
-        write('Avec qui voulez-vous que freud échange de position ? '),
-        read_character(Character),
-        character(X2, Y2, Character),
-        retract(character(X1, Y1, freud)),
-        asserta(character(X2, Y2, freud)),
-        retract(character(X2, Y2, Character)),
-        asserta(character(X1, Y1, Character))
-    ;   ask_move(3, freud, X1, Y1)
+        true
+    ;   wait_alone
+    ).
+
+wait_confirm :-
+    write('Est-ce bien noté (oui/non) ? '),
+    (   read_ouinon ->
+        true
+    ;   wait_confirm
+    ).
+
+clear_console :-
+    clear_console(100).
+
+clear_console(0).
+clear_console(N) :-
+    N > 0,
+    write('\n'),
+    Next is N - 1,
+    clear_console(Next).
+
+ask_lit_lamp(XL, YL, Label, Id) :-
+    write('Quelle lampadaire voulez-vous éteindre ? nº'),
+    read_integer(1, 8, I),
+    (   (case(X, Y, lampe(Lab, I)), Lab > 0) ->
+        XL is X,
+        YL is Y,
+        Label is Lab,
+        Id is I
+    ;   write('Ceci n\'est pas un lampadaire allumé, '),
+        write('veuillez recommencer.\n'),
+        ask_lit_lamp(XL, YL, Label, Id)
+    ).    
+ask_dead_lamp(XL, YL, Id) :-
+    write('Quelle lampadaire voulez-vous allumer ? nº'),
+    read_integer(1, 8, I),
+    (   case(X, Y, lampe(0, I)) ->
+        XL is X,
+        YL is Y,
+        Id is I
+    ;   write('Ceci n\'est pas un lampadaire éteint, '),
+        write('veuillez recommencer.\n'),
+        ask_dead_lamp(XL, YL, Id)
+    ).
+ask_open_manhole(XO, YO, NO) :-
+    write('Quelle plaque d\'égout voulez-vous fermer ? nº'),
+    read_integer(1, 8, N),
+    (   case(XO, YO, egout(0, N)) ->
+        NO is N
+    ;   write('Ceci n\'est pas une plaque d\'égout ouverte, '),
+        write('veuillez recommencer.\n'),
+        ask_open_manhole(XO, YO, NO)
+    ).
+ask_closed_manhole(XC, YC, NC) :-
+    write('Quelle plaque d\'égout voulez-vous ouvrir ? nº'),
+    read_integer(1, 8, N),
+    (   case(XC, YC, egout(1, N)) ->
+        NC is N
+    ;   write('Ceci n\'est pas une plaque d\'égout ouverte, '),
+        write('veuillez recommencer.\n'),
+        ask_open_manhole(XC, YC, NC)
     ).
     
 exit :-
@@ -295,12 +452,8 @@ exit :-
     throw('fin').
     
 accuse(Character) :- 
-    format('L\'enquêteur accuse ~a !!!\n', [Character]),
-    /* supsens */
-    sleep(1), write('.'), flush_output,
-    sleep(1), write('.'), flush_output,
-    sleep(1), write('.'), flush_output,
-    sleep(2),
+    format('L\'inspecteur accuse ~a !!!\n', [Character]),
+    supsens(2),
     (   is_jack(Character) ->
         write('Jack est découvert !!!\n'), flush_output,
         sleep(0.5),
@@ -603,25 +756,21 @@ is_on_open_manhole(Character) :-
     case(X, Y, egout(0, _)).
 
 call_for_witness :-
+    update_seen_tags,
     write('Appel à Témoin\n'),
-    flush_output,
-    /* supsens */
-    sleep(0.5), write('.'), flush_output,
-    sleep(0.5), write('.'), flush_output,
-    sleep(0.5), write('.'), flush_output,
-    sleep(1),
-/*    at_end_of_stream,
-    get_char(_),*/
+    supsens(1),
     (   witness ->
         /* there is a witness */
-        write('Il n\'y a pas de témoin !\n'),
+        write('Il y a un témoin !\n'), flush_output,
+        sleep(1),
         write('Personnages innocentés :'),
-        forall((seen(Character), not_innocent(Character)), (
+        forall((not_seen(Character), not_innocent(Character)), (
                 asserta(innocent(Character)),
                 format(' ~a', [Character])
             )
         ),
-        write('.\n'),
+        write('.\n'), flush_output,
+        sleep(1),
         /* put the witness card */
         (   witness_card(no) ->
             retract(witness_card(no)),
@@ -629,14 +778,16 @@ call_for_witness :-
         ;   true
         )
     ;   /* there is no witness */
-        write('Il y a un témoin !\n'),
+        write('Il n\'y pas de témoin !\n'), flush_output,
+        sleep(1),
         write('Personnages innocentés :'),
-        forall((not_seen(Character), not_innocent(Character)), (
+        forall((seen(Character), not_innocent(Character)), (
                 asserta(innocent(Character)),
                 format(' ~a', [Character])
             )
         ),
-        write('.\n'),
+        write('.\n'), flush_output,
+        sleep(1),
         /* put the no witness card */
         (   witness_card(yes) ->
             retract(witness_card(yes)),
@@ -845,6 +996,17 @@ seen_tag(Content, Tag) :-
         Tag = true
     ;   Tag = false
     ).
+    
+supsens(N) :-
+    flush_output,
+    Delay is N / 2,
+    sleep(Delay),
+    write('.'), flush_output,
+    sleep(Delay),
+    write('.'), flush_output,
+    sleep(Delay),
+    write('.'), flush_output,
+    sleep(N).
 
 update_board :- 
     forall(

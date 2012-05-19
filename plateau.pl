@@ -114,7 +114,7 @@ case(12,12,egout(1, 8)).
 case(13,12,vide).
 case(2,0,barrage(1)).
 /*sortie(12,6,0).*/
-case(12,6,sortie(1)).
+case(12,5,sortie(1)).
 /*sortie(2,7,0).*/
 case(1,7,sortie(2)).
 /*sortie(12,12,1).*/

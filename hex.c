@@ -259,12 +259,12 @@ void draw_hex(SDL_Surface *screen, Hex h, int i, int j, TTF_Font *font) {
             case 6: {
                 ybase = y + (3 * b) / 4;
                 xbase = x + c;
-                ynorth = ybase - (b * 87) / 200;
-                xnorth = xbase + b / 4;
-                ywest = ynorth + 2;
+                ynorth = ybase - b / 4;
+                xnorth = xbase + (b * 87) / 200;
+                ywest = ynorth - 2;
                 xwest = xnorth - 6;
                 yeast = ynorth + 6;
-                xeast = xnorth + 2;
+                xeast = xnorth - 2;
                 break;
             }
         }

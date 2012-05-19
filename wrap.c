@@ -30,25 +30,18 @@ SDL_Thread *drawing_thread;
 const int FRAME_INTERVAL = 100; // 10 FPS
 
 static int Main_Wrapper(int argc, char *argv[]) {
-    int nb_user_directive;
-    PlBool top_level;
+    int functor;
 
-    nb_user_directive = Pl_Start_Prolog(argc, argv);
+    Pl_Start_Prolog(argc, argv);
+    functor = Pl_Find_Atom("new_game");
 
-    top_level = Pl_Try_Execute_Top_Level();
-
+    Pl_Query_Begin(PL_FALSE);
+    Pl_Query_Call(functor, 0, NULL);
+    Pl_Query_End(PL_CUT);
+    
     Pl_Stop_Prolog();
-
-    if (top_level || nb_user_directive)
+    
     return 0;
-
-    fprintf(stderr,
-          "Warning: no initial goal executed\n"
-          "   use a directive :- initialization(Goal)\n"
-          "   or remove the link option --no-top-level"
-          " (or --min-bips or --min-size)\n");
-
-    return 1;
 }
 
 int main(int argc, char *argv[]) {    
