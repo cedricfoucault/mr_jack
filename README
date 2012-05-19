@@ -1,0 +1,14 @@
+-- Compiling --
+
+$> make linux
+for a Linux architecture
+
+$>make mac
+for MacOS X (uses Cocoa)
+
+-- Dependencies --
+
+To use this program you need to have the following libraries installed:
+- SDL (see http://www.libsdl.org/)
+- SDL_gfx (see http://www.ferzkopp.net/joomla/content/view/19/14/)
+- SDL_ttf (see http://www.libsdl.org/projects/SDL_ttf/)
